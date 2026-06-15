@@ -1,0 +1,6 @@
+{
+  "name": "SIPLAKRA GOR The L3VEL",
+  "description": "Sistem Informasi Reservasi dan Penyewaan Lapangan di GOR The L3VEL berbasis web, mendukung pemesanan lapangan Futsal, Basket, Badminton, dan Padel serta penyewaan peralatan olahraga.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
