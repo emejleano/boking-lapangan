@@ -14,6 +14,13 @@ async function setupDatabase() {
 
     console.log('Creating tables...');
     await connection.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id VARCHAR(50) PRIMARY KEY,
         fullName VARCHAR(100) NOT NULL,
@@ -29,11 +36,20 @@ async function setupDatabase() {
       CREATE TABLE IF NOT EXISTS courts (
         id VARCHAR(50) PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
-        category ENUM('futsal', 'basket', 'badminton', 'padel') NOT NULL,
+        category VARCHAR(50) NOT NULL,
         image VARCHAR(255) NOT NULL,
         description TEXT,
         pricePerHour INT NOT NULL,
         status ENUM('available', 'maintenance') DEFAULT 'available'
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS equipments (
+        id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        price INT NOT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
@@ -74,6 +90,19 @@ async function setupDatabase() {
 
     console.log('Seeding initial data...');
     
+    // Seed Categories
+    const [existingCategories]: any = await connection.query('SELECT id FROM categories');
+    if (existingCategories.length === 0) {
+      await connection.query(`
+        INSERT INTO categories (id, name) VALUES
+        ('futsal', 'Futsal'),
+        ('basket', 'Basket'),
+        ('badminton', 'Badminton'),
+        ('padel', 'Padel')
+      `);
+      console.log('Categories seeded.');
+    }
+
     // Seed Users
     const [existingUsers]: any = await connection.query('SELECT id FROM users');
     if (existingUsers.length === 0) {
@@ -98,6 +127,23 @@ async function setupDatabase() {
         ('court-padel-1', 'Padel Glass Court Panoramic', 'padel', 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&q=80&w=600', 'Olahraga terpopuler kekinian! Lapangan padel kaca panoramic premium outdoor.', 250000, 'available')
       `);
       console.log('Courts seeded.');
+    }
+
+    // Seed Equipments
+    const [existingEquipments]: any = await connection.query('SELECT id FROM equipments');
+    if (existingEquipments.length === 0) {
+      await connection.query(`
+        INSERT INTO equipments (id, name, category, price) VALUES
+        ('eq-futsal-ball', 'Bola Futsal Premium (Sewa)', 'futsal', 15000),
+        ('eq-futsal-bibs', 'Rompi Tim (1 Set/10 Pcs)', 'futsal', 20000),
+        ('eq-basket-ball', 'Bola Basket Molten GG7X', 'basket', 20000),
+        ('eq-badminton-racket', 'Raket Yonex Astrox (Per Pcs)', 'badminton', 15000),
+        ('eq-badminton-shuttlecock', 'Shuttlecock 1 Slop (12 Pcs/Beli)', 'all', 40000),
+        ('eq-padel-racket', 'Padel Racket Adidas (Per Pcs)', 'padel', 30000),
+        ('eq-padel-balls', 'Bola Padel (1 Slop / 3 Pcs)', 'padel', 25000),
+        ('eq-shoes', 'Sepatu Olahraga All-Size', 'all', 25000)
+      `);
+      console.log('Equipments seeded.');
     }
 
     // Seed Payment Methods

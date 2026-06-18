@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Court, User } from './types';
+import { Court, User, AddonEquipment, Category } from './types';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import PenyewaDashboard from './components/PenyewaDashboard';
@@ -23,6 +23,8 @@ export default function App() {
   const [loadingCourts, setLoadingCourts] = useState<boolean>(true);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'futsal' | 'basket' | 'badminton' | 'padel'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [equipments, setEquipments] = useState<AddonEquipment[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Load user from LocalStorage on mount (persistent session)
   useEffect(() => {
@@ -57,8 +59,32 @@ export default function App() {
       });
   };
 
+  const fetchEquipments = () => {
+    fetch('/api/equipments')
+      .then((res) => res.json())
+      .then((data) => {
+        setEquipments(data);
+      })
+      .catch((err) => {
+        console.error('Gagal memuat alat sewa dari API:', err);
+      });
+  };
+
+  const fetchCategories = () => {
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        setCategories(data);
+      })
+      .catch((err) => {
+        console.error('Gagal memuat kategori dari API:', err);
+      });
+  };
+
   useEffect(() => {
     fetchCourts();
+    fetchEquipments();
+    fetchCategories();
   }, []);
 
   const handleAuthSuccess = (user: User) => {
@@ -381,9 +407,11 @@ export default function App() {
               <PenyewaDashboard
                 currentUser={currentUser}
                 courts={courts}
+                equipments={equipments}
+                categories={categories}
                 selectedCourt={selectedCourt}
                 setSelectedCourt={setSelectedCourt}
-                onOpenAuth={() => handleOpenAuth('customer')}
+                onOpenAuth={handleOpenAuth}
               />
             )}
           </div>
@@ -395,6 +423,10 @@ export default function App() {
             <AdminDashboard
               courts={courts}
               onRefreshCourts={fetchCourts}
+              equipments={equipments}
+              onRefreshEquipments={fetchEquipments}
+              categories={categories}
+              onRefreshCategories={fetchCategories}
             />
           </div>
         )}

@@ -4,19 +4,23 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Booking, Court, Stats, PaymentMethod, User } from '../types';
+import { Booking, Court, Stats, PaymentMethod, User, AddonEquipment, Category } from '../types';
 import { 
   FileText, Check, X, Settings, DollarSign, AlertCircle, RefreshCw,
-  Edit2, BarChart, Grid, Search, Download, CreditCard, Image as ImageIcon, Info, Plus, Trash2, Calendar, User as UserIcon
+  Edit2, BarChart, Grid, Search, Download, CreditCard, Image as ImageIcon, Info, Plus, Trash2, Calendar, User as UserIcon, Package, FolderTree
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   courts: Court[];
   onRefreshCourts: () => void;
+  equipments: AddonEquipment[];
+  onRefreshEquipments: () => void;
+  categories: Category[];
+  onRefreshCategories: () => void;
 }
 
-export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboardProps) {
-  const [activeAdminTab, setActiveAdminTab] = useState<'dashboard' | 'payments' | 'courts' | 'users' | 'reports'>('dashboard');
+export default function AdminDashboard({ courts, onRefreshCourts, equipments, onRefreshEquipments, categories, onRefreshCategories }: AdminDashboardProps) {
+  const [activeAdminTab, setActiveAdminTab] = useState<'dashboard' | 'payments' | 'courts' | 'equipments' | 'categories' | 'users' | 'reports'>('dashboard');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -44,6 +48,18 @@ export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboa
   const [paymentName, setPaymentName] = useState('');
   const [paymentNumber, setPaymentNumber] = useState('');
   const [paymentType, setPaymentType] = useState<'bank'|'qris'>('bank');
+
+  // Equipment CRUD States
+  const [editingEquipment, setEditingEquipment] = useState<AddonEquipment | null>(null);
+  const [equipmentName, setEquipmentName] = useState<string>('');
+  const [equipmentCategory, setEquipmentCategory] = useState<'futsal' | 'basket' | 'badminton' | 'padel' | 'all'>('all');
+  const [equipmentPrice, setEquipmentPrice] = useState<number>(0);
+  const [showEquipmentModal, setShowEquipmentModal] = useState<boolean>(false);
+
+  // Category CRUD States
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState<string>('');
+  const [showCategoryModal, setShowCategoryModal] = useState<boolean>(false);
 
   // User CRUD States
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -199,6 +215,90 @@ export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboa
     }
   };
 
+  const handleSaveEquipment = () => {
+    if (!equipmentName || equipmentPrice <= 0) {
+      showToast('Error', 'Nama dan Harga alat tidak valid', 'error');
+      return;
+    }
+
+    const payload = {
+      name: equipmentName,
+      category: equipmentCategory,
+      price: equipmentPrice
+    };
+
+    const method = editingEquipment ? 'PUT' : 'POST';
+    const url = editingEquipment ? `/api/equipments/${editingEquipment.id}` : '/api/equipments';
+
+    fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(res => res.json())
+      .then(() => {
+        onRefreshEquipments();
+        setShowEquipmentModal(false);
+        setEditingEquipment(null);
+        showToast('Berhasil', 'Data alat sewa berhasil disimpan', 'success');
+      }).catch(err => {
+        console.error(err);
+        showToast('Gagal', 'Terjadi kesalahan sistem', 'error');
+      });
+  };
+
+  const handleDeleteEquipment = (id: string) => {
+    confirmAction('Apakah Anda yakin ingin menghapus alat sewa ini?', () => {
+      fetch(`/api/equipments/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(() => {
+          onRefreshEquipments();
+          showToast('Berhasil', 'Alat sewa berhasil dihapus', 'success');
+        }).catch(err => {
+          console.error(err);
+          showToast('Gagal', 'Terjadi kesalahan saat menghapus alat sewa', 'error');
+        });
+    });
+  };
+
+  const handleSaveCategory = () => {
+    if (!categoryName) {
+      showToast('Error', 'Nama kategori tidak valid', 'error');
+      return;
+    }
+
+    const method = editingCategory ? 'PUT' : 'POST';
+    const url = editingCategory ? `/api/categories/${editingCategory.id}` : '/api/categories';
+
+    fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: categoryName })
+    }).then(res => res.json())
+      .then(() => {
+        onRefreshCategories();
+        setShowCategoryModal(false);
+        setEditingCategory(null);
+        showToast('Berhasil', 'Kategori berhasil disimpan', 'success');
+      }).catch(err => {
+        console.error(err);
+        showToast('Gagal', 'Terjadi kesalahan sistem', 'error');
+      });
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    confirmAction('Apakah Anda yakin ingin menghapus kategori ini? Pastikan tidak ada lapangan atau alat yang terhubung.', () => {
+      fetch(`/api/categories/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(() => {
+          onRefreshCategories();
+          showToast('Berhasil', 'Kategori berhasil dihapus', 'success');
+        }).catch(err => {
+          console.error(err);
+          showToast('Gagal', 'Terjadi kesalahan saat menghapus kategori', 'error');
+        });
+    });
+  };
+
   const handleUploadCourtImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !editingCourt) return;
     const formData = new FormData();
@@ -342,6 +442,8 @@ export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboa
         <div className="flex flex-wrap gap-2 bg-slate-100 p-1 rounded-xl">
           <button onClick={() => setActiveAdminTab('dashboard')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'dashboard' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Dashboard</button>
           <button onClick={() => setActiveAdminTab('courts')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'courts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Lapangan</button>
+          <button onClick={() => setActiveAdminTab('categories')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'categories' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Kategori</button>
+          <button onClick={() => setActiveAdminTab('equipments')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'equipments' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Alat Sewa</button>
           <button onClick={() => setActiveAdminTab('users')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'users' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Pengguna</button>
           <button onClick={() => setActiveAdminTab('payments')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'payments' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Pembayaran</button>
           <button onClick={() => setActiveAdminTab('reports')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors ${activeAdminTab === 'reports' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>Laporan</button>
@@ -554,6 +656,140 @@ export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboa
       )}
 
       {/* 4. USERS TAB */}
+      {activeAdminTab === 'categories' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Kelola Kategori Lapangan</h2>
+              <p className="text-xs text-slate-500">Atur kategori yang tersedia untuk lapangan dan alat.</p>
+            </div>
+            <button onClick={() => {
+              setEditingCategory(null);
+              setCategoryName('');
+              setShowCategoryModal(true);
+            }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Tambah Kategori
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Nama Kategori</th>
+                    <th className="p-4 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {categories.map(cat => (
+                    <tr key={cat.id} className="hover:bg-slate-50/50 transition">
+                      <td className="p-4 font-mono text-slate-500">{cat.id}</td>
+                      <td className="p-4 font-semibold text-slate-900 flex items-center gap-2">
+                        <FolderTree className="w-4 h-4 text-indigo-500" />
+                        {cat.name}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => {
+                            setEditingCategory(cat);
+                            setCategoryName(cat.name);
+                            setShowCategoryModal(true);
+                          }} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {categories.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="p-8 text-center text-slate-500">Belum ada kategori.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeAdminTab === 'equipments' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Kelola Alat Sewa</h2>
+              <p className="text-xs text-slate-500">Atur perlengkapan yang dapat disewa pengunjung.</p>
+            </div>
+            <button onClick={() => {
+              setEditingEquipment(null);
+              setEquipmentName('');
+              setEquipmentCategory('all');
+              setEquipmentPrice(0);
+              setShowEquipmentModal(true);
+            }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Tambah Alat
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="p-4">Nama Alat</th>
+                    <th className="p-4">Kategori Lapangan</th>
+                    <th className="p-4">Harga Sewa</th>
+                    <th className="p-4 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {equipments.map(eq => (
+                    <tr key={eq.id} className="hover:bg-slate-50/50 transition">
+                      <td className="p-4 font-semibold text-slate-900 flex items-center gap-2">
+                        <Package className="w-4 h-4 text-indigo-500" />
+                        {eq.name}
+                      </td>
+                      <td className="p-4">
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md capitalize font-medium">{eq.category}</span>
+                      </td>
+                      <td className="p-4 font-mono font-bold text-slate-700">Rp {eq.price.toLocaleString('id-ID')}</td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => {
+                            setEditingEquipment(eq);
+                            setEquipmentName(eq.name);
+                            setEquipmentCategory(eq.category);
+                            setEquipmentPrice(eq.price);
+                            setShowEquipmentModal(true);
+                          }} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteEquipment(eq.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {equipments.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-slate-500">Belum ada data alat sewa.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeAdminTab === 'users' && (
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 animate-fade-in">
           <div className="flex justify-between items-center mb-6">
@@ -717,10 +953,9 @@ export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboa
               <>
                 <input type="text" value={editingCourt.name} onChange={e => setEditingCourt({...editingCourt, name: e.target.value})} className="w-full p-2 border rounded text-xs" placeholder="Nama Lapangan" required />
                 <select value={editingCourt.category} onChange={e => setEditingCourt({...editingCourt, category: e.target.value as any})} className="w-full p-2 border rounded text-xs" required>
-                  <option value="futsal">Futsal</option>
-                  <option value="basket">Basket</option>
-                  <option value="badminton">Badminton</option>
-                  <option value="padel">Padel</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </>
             )}
@@ -772,6 +1007,59 @@ export default function AdminDashboard({ courts, onRefreshCourts }: AdminDashboa
             
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => setEditingPayment(null)} className="flex-1 py-2 border rounded text-xs font-bold">Batal</button>
+              <button type="submit" className="flex-1 py-2 bg-indigo-600 text-white rounded text-xs font-bold">Simpan</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveCategory(); }} className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-lg">
+            <h3 className="text-lg font-bold">{editingCategory ? 'Edit Kategori' : 'Tambah Kategori'}</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Nama Kategori</label>
+                <input type="text" value={categoryName} onChange={e => setCategoryName(e.target.value)} placeholder="Contoh: Tenis Meja" className="w-full p-2 border rounded text-xs text-slate-800 bg-white" required />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setShowCategoryModal(false)} className="flex-1 py-2 border rounded text-xs font-bold text-slate-850">Batal</button>
+              <button type="submit" className="flex-1 py-2 bg-indigo-600 text-white rounded text-xs font-bold">Simpan</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showEquipmentModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveEquipment(); }} className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-lg">
+            <h3 className="text-lg font-bold">{editingEquipment ? 'Edit Alat Sewa' : 'Tambah Alat Sewa'}</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Nama Alat</label>
+                <input type="text" value={equipmentName} onChange={e => setEquipmentName(e.target.value)} placeholder="Contoh: Bola Futsal" className="w-full p-2 border rounded text-xs text-slate-800 bg-white" required />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Kategori Lapangan</label>
+                <select value={equipmentCategory} onChange={e => setEquipmentCategory(e.target.value as any)} className="w-full p-2 border rounded text-xs bg-white text-slate-800">
+                  <option value="all">Semua Lapangan (All)</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1">Harga Sewa (Rp)</label>
+                <input type="number" value={equipmentPrice} onChange={e => setEquipmentPrice(Number(e.target.value))} className="w-full p-2 border rounded text-xs text-slate-800 bg-white" required />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setShowEquipmentModal(false)} className="flex-1 py-2 border rounded text-xs font-bold text-slate-850">Batal</button>
               <button type="submit" className="flex-1 py-2 bg-indigo-600 text-white rounded text-xs font-bold">Simpan</button>
             </div>
           </form>

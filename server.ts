@@ -256,6 +256,108 @@ app.delete('/api/courts/:id', async (req, res) => {
   }
 });
 
+// --- CATEGORIES API ---
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const [rows]: any = await db.query('SELECT * FROM categories');
+    res.json(rows);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/categories', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    await db.query('INSERT INTO categories (id, name) VALUES (?, ?)', [id, name]);
+    res.status(201).json({ id, name });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    await db.query('UPDATE categories SET name = ? WHERE id = ?', [name, id]);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM categories WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- EQUIPMENTS API ---
+
+app.get('/api/equipments', async (req, res) => {
+  try {
+    const [rows]: any = await db.query('SELECT * FROM equipments');
+    res.json(rows);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/equipments', async (req, res) => {
+  try {
+    const { name, category, price } = req.body;
+    const id = `eq-${category}-${Date.now()}`;
+    await db.query(
+      'INSERT INTO equipments (id, name, category, price) VALUES (?, ?, ?, ?)',
+      [id, name, category, price]
+    );
+    res.status(201).json({ id, name, category, price });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/equipments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, price } = req.body;
+    
+    await db.query(
+      'UPDATE equipments SET name = ?, category = ?, price = ? WHERE id = ?',
+      [name, category, price, id]
+    );
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/equipments/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM equipments WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- PAYMENT METHODS API ---
 
 app.get('/api/payment-methods', async (req, res) => {

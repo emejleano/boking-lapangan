@@ -15,7 +15,7 @@ export interface User {
 export interface Court {
   id: string;
   name: string;
-  category: 'futsal' | 'basket' | 'badminton' | 'padel';
+  category: string;
   image: string;
   description: string;
   pricePerHour: number;
@@ -55,6 +55,18 @@ export interface PaymentMethod {
   accountName: string;
   accountNumber: string;
   isEnabled: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface AddonEquipment {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
 }
 
 export interface Stats {

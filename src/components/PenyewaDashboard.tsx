@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Court, Booking, User } from '../types';
-import { ADDON_EQUIPMENTS, AVAILABLE_TIME_SLOTS } from '../data';
+import { Court, Booking, User, AddonEquipment, Category } from '../types';
+import { AVAILABLE_TIME_SLOTS } from '../data';
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -44,6 +44,8 @@ interface PenyewaDashboardProps {
   onOpenAuth: () => void;
   selectedCourt: Court | null;
   setSelectedCourt: (court: Court | null) => void;
+  equipments: AddonEquipment[];
+  categories: Category[];
 }
 
 export default function PenyewaDashboard({
@@ -52,9 +54,11 @@ export default function PenyewaDashboard({
   onOpenAuth,
   selectedCourt,
   setSelectedCourt,
+  equipments,
+  categories,
 }: PenyewaDashboardProps) {
   // Category Filtering
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'futsal' | 'basket' | 'badminton' | 'padel'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   
   // Custom Booking States
   const getLocalDateString = () => {
@@ -199,7 +203,7 @@ export default function PenyewaDashboard({
   const selectedEquipmentsList = (Object.entries(equipmentQuantities) as [string, number][])
     .filter(([_, qty]) => qty > 0)
     .map(([eqId, qty]) => {
-      const eq = ADDON_EQUIPMENTS.find(e => e.id === eqId);
+      const eq = equipments.find(e => e.id === eqId);
       return {
         name: eq ? eq.name : 'Unknown Equipment',
         price: eq ? eq.price : 0,
@@ -501,17 +505,27 @@ export default function PenyewaDashboard({
           </div>
           
           <div className="flex flex-wrap gap-1.5 bg-white p-1 rounded-2xl border border-slate-200/80 shadow-xs">
-            {(['all', 'futsal', 'basket', 'badminton', 'padel'] as const).map((cat) => (
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl capitalize transition-all duration-200 cursor-pointer ${
+                selectedCategory === 'all'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-905 hover:bg-slate-50'
+              }`}
+            >
+              Semua
+            </button>
+            {categories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3.5 py-2 text-xs font-bold rounded-xl capitalize transition-all duration-200 cursor-pointer ${
-                  selectedCategory === cat
+                  selectedCategory === cat.id
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-905 hover:bg-slate-50'
                 }`}
               >
-                {cat === 'all' ? 'Semua' : cat}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -802,9 +816,9 @@ export default function PenyewaDashboard({
                     </div>
 
                     <div className="space-y-2 bg-white rounded-2xl p-4 border border-slate-200" id="addon-rental-box">
-                      {ADDON_EQUIPMENTS
-                        .filter(item => item.category === selectedCourt.category || item.category === 'all')
-                        .map((eq) => {
+                      {equipments
+                        .filter(e => e.category === 'all' || (selectedCourt && e.category === selectedCourt.category))
+                        .map(eq => {
                           const qty = equipmentQuantities[eq.id] || 0;
                           return (
                             <div key={eq.id} className="flex justify-between items-center p-3.5 bg-slate-50/40 rounded-xl border border-slate-150 hover:border-slate-350 transition shadow-xs">
