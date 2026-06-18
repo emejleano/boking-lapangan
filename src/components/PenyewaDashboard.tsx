@@ -57,7 +57,13 @@ export default function PenyewaDashboard({
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'futsal' | 'basket' | 'badminton' | 'padel'>('all');
   
   // Custom Booking States
-  const [bookingDate, setBookingDate] = useState<string>('2026-06-15');
+  const getLocalDateString = () => {
+    const now = new Date();
+    const offsetMs = now.getTimezoneOffset() * 60 * 1000;
+    return new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
+  };
+
+  const [bookingDate, setBookingDate] = useState<string>(getLocalDateString());
   const [selectedSlots, setSelectedSlots] = useState<number[]>([]);
   const [bookedSlots, setBookedSlots] = useState<number[]>([]);
   const [bookingStep, setBookingStep] = useState<number>(1);
@@ -699,7 +705,7 @@ export default function PenyewaDashboard({
                         type="date" 
                         value={bookingDate} 
                         onChange={(e) => setBookingDate(e.target.value)}
-                        min="2026-06-15"
+                        min={getLocalDateString()}
                         className="w-full p-3.5 bg-white text-slate-850 rounded-2xl border border-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 font-sans font-semibold text-xs sm:text-sm"
                       />
                       <p className="text-[10px] text-slate-500 mt-1.5">Jadwal validasi GOR dibuka mulai hari ini.</p>
